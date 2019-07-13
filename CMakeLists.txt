@@ -28,6 +28,7 @@ if (NOT CMAKE_BUILD_TYPE)
     "Options are Debug Release RelWithDebInfo MinSizeRel" FORCE)
 endif ()
 
+
 option (BUILD_SHARED_LIBS "Build as shared library" TRUE)
 if (NOT BUILD_SHARED_LIBS)
   add_definitions (-DLIBUSBP_STATIC)
@@ -128,3 +129,39 @@ endif ()
 if (WIN32)
   add_subdirectory (install_helper)
 endif ()
+
+
+# Install python bindings
+option (BUILD_PYTHON_BINDINGS "Build python bindings" FALSE)
+
+
+if (BUILD_PYTHON_BINDINGS)
+   set(PYUSB "pyusbp")
+
+   set(PROGINCL ${CMAKE_SOURCE_DIR}/src ${CMAKE_BINARY_DIR}/src ${CMAKE_SOURCE_DIR}/include)
+   set(PROGSRC ${CMAKE_SOURCE_DIR}/src/libusbp_internal.h ${CMAKE_BINARY_DIR}/src/libusbp_config.h ${CMAKE_SOURCE_DIR}/src/error_hresult.c ${CMAKE_SOURCE_DIR}/src/find_device.c ${CMAKE_SOURCE_DIR}/src/list.c ${CMAKE_SOURCE_DIR}/src/pipe_id.c ${CMAKE_SOURCE_DIR}/src/string.c ${CMAKE_SOURCE_DIR}/src/error.c ${CMAKE_SOURCE_DIR}/src/async_in_pipe.c)
+
+
+   set(EXTRLIBS "")
+
+   if (WIN32)
+       set(EXTRSRC ${CMAKE_SOURCE_DIR}/src/windows/serial_port_windows.c ${CMAKE_SOURCE_DIR}/src/windows/device_instance_id_windows.c ${CMAKE_SOURCE_DIR}/src/windows/list_windows.c ${CMAKE_SOURCE_DIR}/src/windows/async_in_transfer_windows.c ${CMAKE_SOURCE_DIR}/src/windows/device_windows.c ${CMAKE_SOURCE_DIR}/src/windows/error_windows.c ${CMAKE_SOURCE_DIR}/src/windows/generic_interface_windows.c ${CMAKE_SOURCE_DIR}/src/windows/interface_windows.c ${CMAKE_SOURCE_DIR}/src/windows/generic_handle_windows.c) 
+   elseif (UNIX)
+       if (NOT APPLE)
+           # Linux
+           set(EXTRSRC ${CMAKE_SOURCE_DIR}/src/linux/device_linux.c ${CMAKE_SOURCE_DIR}/src/linux/serial_port_linux.c ${CMAKE_SOURCE_DIR}/src/linux/error_linux.c ${CMAKE_SOURCE_DIR}/src/linux/async_in_transfer_linux.c ${CMAKE_SOURCE_DIR}/src/linux/list_linux.c ${CMAKE_SOURCE_DIR}/src/linux/usbfd_linux.c ${CMAKE_SOURCE_DIR}/src/linux/generic_handle_linux.c ${CMAKE_SOURCE_DIR}/src/linux/udev_linux.c ${CMAKE_SOURCE_DIR}/src/linux/generic_interface_linux.c)
+       else ()
+           # Mac
+           find_library(IOKit IOKit)
+           find_library(CoreFoundation CoreFoundation)
+           set(EXTRLIBS ${IOKit} ${CoreFoundation})
+           set(EXTRSRC ${CMAKE_SOURCE_DIR}/src/mac/iokit_mac.c ${CMAKE_SOURCE_DIR}/src/mac/generic_interface_mac.c ${CMAKE_SOURCE_DIR}/src/mac/async_in_transfer_mac.c ${CMAKE_SOURCE_DIR}/src/mac/generic_handle_mac.c ${CMAKE_SOURCE_DIR}/src/mac/error_mac.c ${CMAKE_SOURCE_DIR}/src/mac/serial_port_mac.c ${CMAKE_SOURCE_DIR}/src/mac/device_mac.c ${CMAKE_SOURCE_DIR}/src/mac/list_mac.c ${IOKit} ${CoreFoundation})
+       endif ()
+   endif ()
+
+   find_package(pybind11)
+   pybind11_add_module(${PYUSB} bindings/bindings.cpp ${PROGSRC} ${EXTRSRC})
+   target_include_directories(${PYUSB} PUBLIC ${PROGINCL} ${EXTRHDR})
+   target_link_libraries(${PYUSB} PUBLIC ${EXTRLIBS}) 
+endif ()
+
