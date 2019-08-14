@@ -4,7 +4,7 @@ def serial_number_or_default(device, default="-"):
     try:
         return device.serial_number()
     except USBError as e:
-        return False
+        return default
 
 def try_print_port_name(device, interface_number, composite):
     try:
@@ -18,9 +18,9 @@ def try_print_port_name(device, interface_number, composite):
 
 devices = list_connected_devices()
 for dev in devices:
-    vendor_id = dev.get_vendor_id();
-    product_id = dev.get_product_id();
-    serial_number = serial_number_or_default(device);
+    vendor_id = dev.get_vendor_id()
+    product_id = dev.get_product_id()
+    serial_number = serial_number_or_default(device)
 
     for i in range(16):
         success = try_print_port_name(dev, i, True)
